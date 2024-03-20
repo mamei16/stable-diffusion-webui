@@ -22,7 +22,7 @@ def process_batch(p, input_dir, output_dir, inpaint_mask_dir, args, to_scale=Fal
     output_dir = output_dir.strip()
     processing.fix_seed(p)
 
-    images = list(shared.walk_files(input_dir, allowed_extensions=(".png", ".jpg", ".jpeg", ".webp", ".tif", ".tiff")))
+    batch_images = list(shared.walk_files(input_dir, allowed_extensions=(".png", ".jpg", ".jpeg", ".webp", ".tif", ".tiff")))
 
     is_inpaint_batch = False
     if inpaint_mask_dir:
@@ -32,9 +32,9 @@ def process_batch(p, input_dir, output_dir, inpaint_mask_dir, args, to_scale=Fal
         if is_inpaint_batch:
             print(f"\nInpaint batch is enabled. {len(inpaint_masks)} masks found.")
 
-    print(f"Will process {len(images)} images, creating {p.n_iter * p.batch_size} new images for each.")
+    print(f"Will process {len(batch_images)} images, creating {p.n_iter * p.batch_size} new images for each.")
 
-    state.job_count = len(images) * p.n_iter
+    state.job_count = len(batch_images) * p.n_iter
 
     # extract "default" params to use in case getting png info fails
     prompt = p.prompt
@@ -47,8 +47,8 @@ def process_batch(p, input_dir, output_dir, inpaint_mask_dir, args, to_scale=Fal
     sd_model_checkpoint_override = get_closet_checkpoint_match(override_settings.get("sd_model_checkpoint", None))
     batch_results = None
     discard_further_results = False
-    for i, image in enumerate(images):
-        state.job = f"{i+1} out of {len(images)}"
+    for i, image in enumerate(batch_images):
+        state.job = f"{i+1} out of {len(batch_images)}"
         if state.skipped:
             state.skipped = False
 

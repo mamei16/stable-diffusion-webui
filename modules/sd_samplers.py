@@ -1,7 +1,10 @@
-from modules import sd_samplers_kdiffusion, sd_samplers_timesteps, sd_samplers_lcm, shared
+from __future__ import annotations
+
+from modules import sd_samplers_kdiffusion, sd_samplers_timesteps, sd_samplers_lcm, shared, sd_samplers_common
 
 # imports for functions that previously were here and are used by other modules
-from modules.sd_samplers_common import samples_to_image_grid, sample_to_image  # noqa: F401
+samples_to_image_grid = sd_samplers_common.samples_to_image_grid
+sample_to_image = sd_samplers_common.sample_to_image
 from modules_forge import forge_alter_samplers
 
 all_samplers = [
@@ -12,8 +15,8 @@ all_samplers = [
 ]
 all_samplers_map = {x.name: x for x in all_samplers}
 
-samplers = []
-samplers_for_img2img = []
+samplers: list[sd_samplers_common.SamplerData] = []
+samplers_for_img2img: list[sd_samplers_common.SamplerData] = []
 samplers_map = {}
 samplers_hidden = {}
 
@@ -57,6 +60,10 @@ def set_samplers():
 
 def visible_sampler_names():
     return [x.name for x in samplers if x.name not in samplers_hidden]
+
+
+def visible_samplers():
+    return [x for x in samplers if x.name not in samplers_hidden]
 
 
 set_samplers()
