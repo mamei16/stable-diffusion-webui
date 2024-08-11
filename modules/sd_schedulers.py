@@ -1,8 +1,10 @@
 import dataclasses
-
 import torch
+import numpy as np
 
 import k_diffusion
+
+from modules import shared
 
 
 @dataclasses.dataclass
@@ -41,6 +43,35 @@ def kl_optimal(n, sigma_min, sigma_max, device):
     return k_diffusion.sampling.append_zero(sigmas)
 
 
+def get_align_your_steps_sigmas(n, sigma_min, sigma_max, device):
+    # https://research.nvidia.com/labs/toronto-ai/AlignYourSteps/howto.html
+    def loglinear_interp(t_steps, num_steps):
+        """
+        Performs log-linear interpolation of a given array of decreasing numbers.
+        """
+        xs = np.linspace(0, 1, len(t_steps))
+        ys = np.log(t_steps[::-1])
+
+        new_xs = np.linspace(0, 1, num_steps)
+        new_ys = np.interp(new_xs, xs, ys)
+
+        interped_ys = np.exp(new_ys)[::-1].copy()
+        return interped_ys
+
+    if shared.sd_model.is_sdxl:
+        sigmas = [14.615, 6.315, 3.771, 2.181, 1.342, 0.862, 0.555, 0.380, 0.234, 0.113, 0.029]
+    else:
+        # Default to SD 1.5 sigmas.
+        sigmas = [14.615, 6.475, 3.861, 2.697, 1.886, 1.396, 0.963, 0.652, 0.399, 0.152, 0.029]
+
+    if n != len(sigmas):
+        sigmas = np.append(loglinear_interp(sigmas, n), [0.0])
+    else:
+        sigmas.append(0.0)
+
+    return torch.FloatTensor(sigmas).to(device)
+
+
 schedulers = [
     Scheduler('automatic', 'Automatic', None),
     Scheduler('uniform', 'Uniform', uniform, need_inner_model=True),
@@ -49,6 +80,7 @@ schedulers = [
     Scheduler('polyexponential', 'Polyexponential', k_diffusion.sampling.get_sigmas_polyexponential, default_rho=1.0),
     Scheduler('sgm_uniform', 'SGM Uniform', sgm_uniform, need_inner_model=True, aliases=["SGMUniform"]),
     Scheduler('kl_optimal', 'KL Optimal', kl_optimal),
+    Scheduler('align_your_steps', 'Align Your Steps', get_align_your_steps_sigmas)
 ]
 
 schedulers_map = {**{x.name: x for x in schedulers}, **{x.label: x for x in schedulers}}
